@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test profile (Nextflow ${{ matrix.nextflow }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nextflow: ["24.10.0", "latest-stable"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: ${{ matrix.nextflow }}
+
+      - name: Run pipeline on the test dataset
+        run: nextflow run . -profile test,docker --outdir results
+
+      - name: Check outputs
+        run: |
+          set -euo pipefail
+          for f in \
+            results/multiqc/multiqc_report.html \
+            results/summary/benchmark_all_samples.tsv \
+            results/summary/coverage_genes_all_samples.tsv \
+            results/summary/variants_all_samples.tsv \
+            results/pipeline_info/software_versions.yml \
+            results/variants/annotated/SAMPLE01.annotated.vcf.gz \
+            results/variants/annotated/SAMPLE02.annotated.vcf.gz
+          do
+            test -s "$f" || { echo "missing or empty: $f"; exit 1; }
+          done
+          cat results/summary/benchmark_all_samples.tsv
+          # fail the build if F1 for all variants drops below 0.95 in any sample
+          awk -F'\t' 'NR > 1 && $2 == "ALL" && $8 < 0.95 { print "F1 below 0.95: " $1; bad = 1 } END { exit bad }' \
+            results/summary/benchmark_all_samples.tsv
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-nf-${{ matrix.nextflow }}
+          path: |
+            results/multiqc
+            results/summary
+            results/benchmark
+            results/qc/coverage
+            results/pipeline_info
+            .nextflow.log
+          if-no-files-found: warn

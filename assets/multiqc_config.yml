@@ -1,0 +1,86 @@
+title: "Germline panel QC"
+subtitle: "ngs-germline-panel-nf"
+report_comment: >
+  Read quality, alignment, duplicate rate, target coverage and variant
+  statistics per sample. The benchmark section appears only for samples
+  supplied with a truth VCF.
+
+run_modules:
+  - fastqc
+  - fastp
+  - samtools
+  - bcftools
+  - custom_content
+
+module_order:
+  - fastqc
+  - fastp
+  - samtools
+  - bcftools
+
+custom_data:
+  panel_coverage:
+    plot_type: "generalstats"
+    file_format: "tsv"
+    pconfig:
+      - mean_target_depth:
+          title: "Target depth"
+          description: "Mean depth over panel targets (unique fragments, MAPQ >= 20, base quality >= 20)"
+          format: "{:,.0f}"
+          suffix: "x"
+          scale: "Blues"
+      - pct_target_ge_min_depth:
+          title: "% >= min depth"
+          description: "Percent of target bases at or above --min_depth"
+          format: "{:,.2f}"
+          suffix: "%"
+          min: 0
+          max: 100
+          scale: "RdYlGn"
+      - pct_target_ge_100x:
+          title: "% >= 100x"
+          description: "Percent of target bases at or above 100x"
+          format: "{:,.2f}"
+          suffix: "%"
+          min: 0
+          max: 100
+          scale: "RdYlGn"
+  benchmark:
+    section_name: "Truth-set benchmark"
+    description: "PASS calls compared with the known truth set inside panel targets (exact allele match)."
+    plot_type: "table"
+    file_format: "tsv"
+    pconfig:
+      id: "benchmark_table"
+      title: "Truth-set benchmark"
+    headers:
+      TP: {format: "{:,.0f}"}
+      FP: {format: "{:,.0f}"}
+      FN: {format: "{:,.0f}"}
+      precision: {format: "{:,.4f}", min: 0, max: 1}
+      recall: {format: "{:,.4f}", min: 0, max: 1}
+      F1: {format: "{:,.4f}", min: 0, max: 1}
+      genotype_concordance: {title: "GT concordance", format: "{:,.4f}", min: 0, max: 1}
+
+sp:
+  panel_coverage:
+    fn: "panel_coverage_summary.tsv"
+  benchmark:
+    fn: "benchmark_summary.tsv"
+
+extra_fn_clean_exts:
+  - ".trim"
+  - ".md"
+  - ".flagstat"
+  - ".samtools_stats"
+  - ".bcftools_stats"
+  - ".fastp"
+
+table_sample_merge:
+  "R1": "_R1"
+  "R2": "_R2"
+
+show_analysis_paths: false
+
+# no network calls from inside the pipeline
+no_version_check: true
