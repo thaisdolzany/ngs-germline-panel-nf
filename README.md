@@ -190,14 +190,14 @@ SAMPLE02.
 
 ### What the validation caught
 
-**Indels silently skipped at high depth.** In the first version, SAMPLE01
-lost one of its six indels (indel recall 0.83) while SAMPLE02, at lower
-depth, recovered all of them. The missed deletion sat at a site with close
-to 500x raw depth. `bcftools mpileup` skips indel calling when the per-file
-depth exceeds `--max-idepth`, which defaults to 250. Gene panels are usually
-sequenced well above that, so the limit is now raised to 5000 in
-`modules/local/call_variants.nf`, and SAMPLE01 indel recall is 6/6. Without a
-truth set this would have looked like a clean run.
+**Indels silently skipped at high depth.** With the bcftools default
+settings, SAMPLE01 loses one of its six indels (indel recall 0.83) while
+SAMPLE02, at lower depth, recovers all of them. The missed deletion sits at
+a site with close to 500x raw depth. `bcftools mpileup` skips indel calling
+when the per-file depth exceeds `--max-idepth`, which defaults to 250. Gene
+panels are usually sequenced well above that, so the pipeline sets the limit
+to 5000 in `modules/local/call_variants.nf`, and SAMPLE01 indel recall is
+6/6. Without a truth set the default would look like a clean run.
 
 **The one false negative is explained by coverage QC.** SAMPLE02 misses
 chr21:17513186 A>C in CXADR. The variant was called (QUAL 91) but carries
